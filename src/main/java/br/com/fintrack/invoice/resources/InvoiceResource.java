@@ -1,30 +1,52 @@
 package br.com.fintrack.invoice.resources;
 
 
-import br.com.fintrack.invoice.repository.InvoiceRepository;
+import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
+import br.com.fintrack.invoice.service.InvoiceService;
+import jakarta.annotation.Nonnull;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Path("invoices")
 @RequiredArgsConstructor
-@Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
 public class InvoiceResource {
 
-    private final InvoiceRepository repository;
+    private final InvoiceService service;
+
+    @POST
+    @Path("create")
+    public Response createInvoiceByCardManualy(@QueryParam("cardId") UUID cardId,
+                                               InvoiceRequest request) {
+        log.info("Requesting createInvoiceByCardManualy cardId={} payload= {}", cardId, request.toString());
+        service.saveInvoice(request, cardId);
+        log.info("Saved successfully");
+        return Response.ok().build();
+    }
 
 
     @GET
-    @Path("byCard/{cardId}")
-    public Response loadInvoiceByCard(@PathParam("cardId") String cardId) {
-        List<InvoiceResponse> findAll = repository.findAll().stream().map(InvoiceResponse::fromEntity)
-                .toList();
+    @Path("find/card/{cardId}")
+    public Response loadInvoiceByCard(@PathParam("cardId") @Nonnull String cardId) {
+        List<InvoiceResponse> findAll = service.findAllInvoiceByCardIdWithResponse(cardId);
         return Response.ok(findAll).build();
+    }
+
+    @PUT
+    @Path("update")
+    public Response updateInvoice(@QueryParam("invoiceId") Long invoiceId, InvoiceRequest request) {
+        log.info("Updating invoice invoiceId={}, payload={}", invoiceId, request.toString());
+        var invoiceResponse = service.updatedInvoice(invoiceId, request);
+        log.info("Fatura atualizada periodStart={}, periodEnd={}, status={}, amount={}", invoiceResponse.periodStart(),
+                invoiceResponse.periodEnd(), invoiceResponse.status(),
+                invoiceResponse.totalAmount());
+        return Response.ok(invoiceResponse).encoding("UTF-8").build();
     }
 
 
