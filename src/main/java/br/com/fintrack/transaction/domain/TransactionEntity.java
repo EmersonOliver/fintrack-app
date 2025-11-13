@@ -1,0 +1,70 @@
+package br.com.fintrack.transaction.domain;
+
+import br.com.fintrack.card.domain.CardEntity;
+import br.com.fintrack.common.enums.PaymentMethod;
+import br.com.fintrack.common.enums.TransactionType;
+import br.com.fintrack.wallet.domain.WalletEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "transaction", schema = "fintrack")
+public class TransactionEntity implements Serializable {
+
+    @Id
+    @Column(name = "transaction_id")
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID transactionId;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "amount")
+    private BigDecimal amount;
+
+    @Column(name = "installment_value")
+    private BigDecimal installmentValue;
+
+    @Column(name = "date")
+    private LocalDate date;
+
+    @Column(name = "type")
+    private TransactionType type;
+
+    @Column(name = "method")
+    private PaymentMethod method;
+
+    @Column(name = "installment")
+    private Boolean installment;
+
+    @Column(name = "generated")
+    private Boolean generated;
+
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    @Column(name = "installment_total")
+    private Integer installmentTotal;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "card_id", referencedColumnName = "card_id",
+            foreignKey = @ForeignKey(name = "fk_transaction_card"))
+    private CardEntity card;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wallet_id", referencedColumnName = "wallet_id",
+            foreignKey = @ForeignKey(name = "fk_transaction_wallet"))
+    private WalletEntity wallet;
+}
