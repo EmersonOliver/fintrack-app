@@ -35,6 +35,9 @@ public class InvoiceEntity implements Serializable {
     @Column(name = "period_end")
     private LocalDate periodEnd;
 
+    @Column(name = "created_at")
+    private LocalDate createdAt;
+
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
 
