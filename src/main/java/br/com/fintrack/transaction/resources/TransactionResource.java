@@ -2,18 +2,16 @@ package br.com.fintrack.transaction.resources;
 
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
 import br.com.fintrack.transaction.service.TransactionService;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.UUID;
+
+@Slf4j
 @Path("/transactions")
 @RequiredArgsConstructor
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class TransactionResource {
 
     private final TransactionService transactionService;
@@ -21,7 +19,35 @@ public class TransactionResource {
     @POST
     @Path("create")
     public Response create(TransactionRequest request) {
+        log.info("Creating transaction payload= {}", request.toString());
         var entity = transactionService.create(request);
         return Response.ok(entity).build();
+    }
+
+    @POST
+    @Path("update/{transactionId}")
+    public Response updateTransaction(@PathParam("transactionId") UUID transactionId,
+                                      @HeaderParam("userId") UUID userId,
+                                      TransactionRequest request) {
+        log.info("Update transaction {}", request.toString());
+        var response = transactionService.updateTransaction(transactionId, userId, request);
+        return Response.ok(response).encoding("UTF-8").build();
+    }
+
+    @GET
+    @Path("load/{transactionId}")
+    public Response loadTransactionById(@PathParam("transactionId") UUID transactionId,
+                                        @HeaderParam("user-id") UUID userId) {
+        log.info("load transaction by ids");
+        var response = transactionService.loadByTransactionId(transactionId, userId);
+        return Response.ok(response).encoding("UTF-8").build();
+    }
+
+    @GET
+    @Path("load/all")
+    public Response loadAllTransactions(@HeaderParam("user-id") UUID userId) {
+        log.info("loading all transactions by user");
+        var response = transactionService.loadAllTransactions(userId);
+        return Response.ok(response).encoding("UTF-8").build();
     }
 }
