@@ -3,6 +3,7 @@ package br.com.fintrack.transaction.domain;
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.PaymentMethod;
 import br.com.fintrack.common.enums.TransactionType;
+import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.wallet.domain.WalletEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -67,4 +68,9 @@ public class TransactionEntity implements Serializable {
     @JoinColumn(name = "wallet_id", referencedColumnName = "wallet_id",
             foreignKey = @ForeignKey(name = "fk_transaction_wallet"))
     private WalletEntity wallet;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id_transaction", referencedColumnName = "user_id",
+            foreignKey = @ForeignKey(name = "fk_transaction_user"))
+    private UserEntity userTransaction;
 }

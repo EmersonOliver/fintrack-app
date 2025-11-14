@@ -13,4 +13,7 @@ public class TransactionRepository implements PanacheRepositoryBase<TransactionE
     public List<TransactionEntity> findUnfinishedInstallments() {
         return list("installment = ?1 and installmentNumber < installmentTotal and generated=false" , true);
     }
+    public List<TransactionEntity> findByUserId(UUID userId) {
+        return find("userTransaction.userId", userId).list();
+    }
 }
