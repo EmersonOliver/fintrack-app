@@ -3,6 +3,7 @@ package br.com.fintrack.transaction.service.impl;
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
 import br.com.fintrack.common.exceptions.CardNotFoundException;
+import br.com.fintrack.common.exceptions.TransactionExceedsLimitsException;
 import br.com.fintrack.common.exceptions.TransactionNotFoundException;
 import br.com.fintrack.common.exceptions.UsersException;
 import br.com.fintrack.transaction.domain.TransactionEntity;
@@ -47,6 +48,10 @@ public class TransactionServiceImpl implements TransactionService {
         int totalInstallments = request.installmentTotal() != null ? request.installmentTotal() : 1;
         BigDecimal installmentValue = totalAmount.divide(BigDecimal.valueOf(totalInstallments), 2, RoundingMode.HALF_UP);
 
+        if(totalAmount.compareTo(card.getLimitAvailable()) > 0)
+            throw new TransactionExceedsLimitsException(String.format("Transação excede o limite disponível de R$ %s", card.getLimitAvailable()));
+
+
         var transaction = TransactionEntity.builder()
                 .description(request.description())
                 .amount(request.amount())
@@ -65,6 +70,10 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
 
         transactionRepository.persist(transaction);
+        BigDecimal limitUsed = card.getLimitUsed().add(totalAmount);
+        card.setLimitUsed(limitUsed);
+        card.updateAvailableLimit();
+        cardService.updateLimit(card);
         return TransactionResponse.fromEntity(transaction);
     }
 

@@ -13,6 +13,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -146,6 +147,12 @@ public class CardServiceImpl implements CardService {
         }
         cardEntity.setActive(false);
         cardRepository.persistAndFlush(cardEntity);
+    }
+
+    @Override
+    @Transactional
+    public void updateLimit(CardEntity card) {
+        cardRepository.persistAndFlush(card);
     }
 
     private CardEntity resolveTypeTransition(CardEntity existingCard, CardRequest request, UUID userId) {
