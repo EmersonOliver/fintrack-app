@@ -16,4 +16,6 @@ public interface CardService {
     Optional<CardEntity> loadCardById(String cardId);
     List<CardEntity> listAll();
     void deleteCard(UUID cardId, UUID userId);
+
+    void updateLimit(CardEntity card);
 }

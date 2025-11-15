@@ -57,6 +57,8 @@ public class TransactionJob {
                     .installment(true)
                     .generated(true)
                     .installmentNumber(i)
+                    .userTransaction(baseTransaction.getUserTransaction())
+                    .wallet(baseTransaction.getWallet())
                     .card(baseTransaction.getCard())
                     .installmentTotal(baseTransaction.getInstallmentTotal())
                     .build();
