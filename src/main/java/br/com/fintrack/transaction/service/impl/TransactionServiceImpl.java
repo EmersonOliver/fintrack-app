@@ -48,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
         int totalInstallments = request.installmentTotal() != null ? request.installmentTotal() : 1;
         BigDecimal installmentValue = totalAmount.divide(BigDecimal.valueOf(totalInstallments), 2, RoundingMode.HALF_UP);
 
-        if(totalAmount.compareTo(card.getLimitAvailable()) > 0)
+        if (totalAmount.compareTo(card.getLimitAvailable()) > 0)
             throw new TransactionExceedsLimitsException(String.format("Transação excede o limite disponível de R$ %s", card.getLimitAvailable()));
 
 
@@ -136,7 +136,8 @@ public class TransactionServiceImpl implements TransactionService {
             }
 
             BigDecimal installmentValue =
-                    request.amount().divide(new BigDecimal(request.installmentTotal()), 2, BigDecimal.ROUND_HALF_UP);
+                    request.amount().divide(new BigDecimal(request.installmentTotal()), 2,
+                            BigDecimal.ROUND_HALF_UP);
 
             transaction.setInstallmentValue(installmentValue);
         } else {
@@ -148,6 +149,11 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.persist(transaction);
 
         return TransactionResponse.fromEntity(transaction);
+    }
+
+    @Override
+    public List<TransactionEntity> loadTransactionsByCard(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate) {
+        return transactionRepository.findByUserIdAndCardId(userId, cardId, startDate, endDate);
     }
 
     private CardEntity loadCardIfProvided(String cardId, UUID userId) {

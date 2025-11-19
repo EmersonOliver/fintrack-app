@@ -1,17 +1,22 @@
 package br.com.fintrack.invoice.service.impl;
 
+import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
 import br.com.fintrack.common.exceptions.UsersException;
 import br.com.fintrack.invoice.repository.InvoiceRepository;
 import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
+import br.com.fintrack.invoice.resources.response.SummaryInvoice;
 import br.com.fintrack.invoice.service.InvoiceService;
+import br.com.fintrack.transaction.service.TransactionService;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +27,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final CardService cardService;
+    private final TransactionService transactionService;
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -66,4 +72,24 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
         throw new UsersException("Ocorreu uma falha para carregar a fatura");
     }
+
+    @Override
+    public List<SummaryInvoice> getResumeInvoice(String referenceDate, UUID userId) {
+        var listCards = cardService.listAllByOwner(userId);
+        List<SummaryInvoice> summary = new ArrayList<>();
+
+        for (CardEntity card : listCards) {
+            LocalDate startDate = referenceDateParse(referenceDate, card.getClosingDate());
+            var listTransactions = transactionService.loadTransactionsByCard(card.getOwner().getUserId(),
+                    card.getCardId(), startDate, startDate.plusMonths(1L));
+            summary.add(SummaryInvoice.summaryInvoiceResponse(card, listTransactions, startDate));
+        }
+        return summary;
+    }
+
+    private LocalDate referenceDateParse(String referenceDate, Integer closingDate) {
+        return LocalDate.parse(referenceDate + "-" + closingDate);
+    }
+
+
 }

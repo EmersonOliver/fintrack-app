@@ -1,12 +1,15 @@
 package br.com.fintrack.transaction.resources;
 
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
+import br.com.fintrack.transaction.service.ExportService;
 import br.com.fintrack.transaction.service.TransactionService;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -15,6 +18,7 @@ import java.util.UUID;
 public class TransactionResource {
 
     private final TransactionService transactionService;
+    private final ExportService exportService;
 
     @POST
     @Path("create")
@@ -34,6 +38,16 @@ public class TransactionResource {
         return Response.ok(response).encoding("UTF-8").build();
     }
 
+    @POST
+    @Path("lote")
+    public Response createLote(List<TransactionRequest> request) {
+        log.info("Creating transaction payload= {}", request.toString());
+        for (TransactionRequest transactionRequest : request) {
+            transactionService.create(transactionRequest);
+        }
+        return Response.ok(request).build();
+    }
+
     @GET
     @Path("load/{transactionId}")
     public Response loadTransactionById(@PathParam("transactionId") UUID transactionId,
@@ -49,5 +63,18 @@ public class TransactionResource {
         log.info("loading all transactions by user");
         var response = transactionService.loadAllTransactions(userId);
         return Response.ok(response).encoding("UTF-8").build();
+    }
+
+    @GET
+    @Path("export/csv/{userId}")
+    @Produces("text/csv")
+    public Response exportByCardId(@PathParam("userId") UUID userId) {
+
+        byte[] file = exportService.generateCsvByUser(userId);
+
+        return Response.ok(file)
+                .header("Content-Disposition",
+                        "attachment; filename=transactions-" + userId + YearMonth.now() +".csv")
+                .build();
     }
 }
