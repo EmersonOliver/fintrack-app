@@ -3,8 +3,10 @@ package br.com.fintrack.invoice.resources;
 
 import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
+import br.com.fintrack.invoice.resources.response.SummaryInvoice;
 import br.com.fintrack.invoice.service.InvoiceService;
 import jakarta.annotation.Nonnull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,17 @@ public class InvoiceResource {
                 invoiceResponse.periodEnd(), invoiceResponse.status(),
                 invoiceResponse.totalAmount());
         return Response.ok(invoiceResponse).encoding("UTF-8").build();
+    }
+
+    @GET
+    @Path("resume/{referenceDate}/{userId}")
+    public Response resumeMonth(@PathParam("referenceDate")
+                                @Pattern(regexp = "^[0-9]{4}-(0[1-9]|1[0-2])$", message = "Formato inválido. Use yyyy-MM")
+                                String referenceDate,
+                                @PathParam("userId") UUID userId) {
+        List<SummaryInvoice> result = this.service.getResumeInvoice(referenceDate, userId);
+        return Response.ok(result).build();
+
     }
 
 

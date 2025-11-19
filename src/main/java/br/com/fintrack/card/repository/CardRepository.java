@@ -9,4 +9,5 @@ import java.util.UUID;
 @ApplicationScoped
 public class CardRepository implements PanacheRepositoryBase<CardEntity, UUID> {
 
+
 }
