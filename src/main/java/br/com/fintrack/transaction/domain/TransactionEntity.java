@@ -3,6 +3,7 @@ package br.com.fintrack.transaction.domain;
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.PaymentMethod;
 import br.com.fintrack.common.enums.TransactionType;
+import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.wallet.domain.WalletEntity;
 import jakarta.persistence.*;
@@ -73,4 +74,9 @@ public class TransactionEntity implements Serializable {
     @JoinColumn(name = "user_id_transaction", referencedColumnName = "user_id",
             foreignKey = @ForeignKey(name = "fk_transaction_user"))
     private UserEntity userTransaction;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invoice_transaction_id", referencedColumnName = "invoice_id",
+            foreignKey = @ForeignKey(name = "fk_invoice_transaction"))
+    private InvoiceEntity invoice;
 }

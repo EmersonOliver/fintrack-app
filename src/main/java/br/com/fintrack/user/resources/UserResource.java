@@ -9,6 +9,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("user")
@@ -35,13 +37,9 @@ public class UserResource {
     @POST
     @Path("login")
     public Response userLogin(UserRequest userRequest) {
-        if (userService.login(userRequest.email(), userRequest.password())) {
-            var user = userService.loadUserByMailAndPass(userRequest.email(), userRequest.password());
-
-            return Response.accepted(user).build();
-        } else {
-            return Response.status(Response.Status.UNAUTHORIZED).build();
-        }
+        Map<String, String> mapResponse = new HashMap<>();
+        mapResponse.put("token", userService.getTokenUser(userRequest.email(), userRequest.password()));
+       return Response.ok(mapResponse).build();
     }
 
     @GET

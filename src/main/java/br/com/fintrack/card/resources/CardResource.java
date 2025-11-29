@@ -4,6 +4,7 @@ import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.resources.request.CardRequest;
 import br.com.fintrack.card.resources.response.CardResponse;
 import br.com.fintrack.card.service.CardService;
+import br.com.fintrack.core.security.AuthSecurityContext;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -19,22 +20,25 @@ import java.util.UUID;
 public class CardResource {
 
     private final CardService cardService;
+    private final AuthSecurityContext securityContext;
 
     @POST
     @Path("create")
-    public Response postCard(CardRequest request, @HeaderParam("user-id") String userId) {
+    public Response postCard(CardRequest request) {
         log.info("Creating card type={} ", request.cardType().name());
-        CardEntity card = cardService.saveCardAndReturnResult(request, UUID.fromString(userId));
+        UUID userID = securityContext.getInstance().get().userId;
+        CardEntity card = cardService.saveCardAndReturnResult(request, userID);
         return Response.ok(CardResponse.fromEntity(card)).encoding("utf-8").build();
     }
 
     @PUT
     @Path("update")
-    public Response updateCard(@HeaderParam("user-id") UUID userId,
+    public Response updateCard(
                                @QueryParam("cardId") UUID cardID,
                                CardRequest request) {
+        UUID userID = securityContext.getInstance().get().userId;
         log.info("Updating card transaction {}", request.toString());
-        var response = cardService.updateCard(userId, cardID, request);
+        var response = cardService.updateCard(userID, cardID, request);
         return Response.ok(response).encoding(
                 "UTF-8"
         ).build();
@@ -42,9 +46,10 @@ public class CardResource {
 
     @DELETE
     @Path("delete")
-    public Response deleteCard(@QueryParam("cardId") UUID cardId, @HeaderParam("user-id") UUID userId) {
+    public Response deleteCard(@QueryParam("cardId") UUID cardId) {
         log.info("Removing card type");
-        cardService.deleteCard(cardId, userId);
+        UUID userID = securityContext.getInstance().get().userId;
+        cardService.deleteCard(cardId, userID);
         return Response.accepted().build();
     }
 
@@ -61,8 +66,9 @@ public class CardResource {
 
     @GET
     @Path("load/owner")
-    public Response loadCardByUser(@HeaderParam("user-id") UUID userId) {
-        var result = cardService.listAllByOwner(userId);
+    public Response loadCardByUser() {
+        UUID userID = securityContext.getInstance().get().userId;
+        var result = cardService.listAllByOwner(userID);
         List<CardResponse> response = new ArrayList<>();
         if (!result.isEmpty()) {
             response.addAll(result.stream().map(CardResponse::fromEntity).toList());

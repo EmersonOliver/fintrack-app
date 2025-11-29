@@ -1,11 +1,13 @@
 package br.com.fintrack.invoice.resources;
 
 
+import br.com.fintrack.core.security.AuthSecurityContext;
 import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
 import br.com.fintrack.invoice.resources.response.SummaryInvoice;
 import br.com.fintrack.invoice.service.InvoiceService;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
@@ -21,6 +23,8 @@ import java.util.UUID;
 public class InvoiceResource {
 
     private final InvoiceService service;
+
+    private final AuthSecurityContext securityContext;
 
     @POST
     @Path("create")
@@ -52,12 +56,11 @@ public class InvoiceResource {
     }
 
     @GET
-    @Path("resume/{referenceDate}/{userId}")
+    @Path("resume/{referenceDate}")
     public Response resumeMonth(@PathParam("referenceDate")
                                 @Pattern(regexp = "^[0-9]{4}-(0[1-9]|1[0-2])$", message = "Formato inválido. Use yyyy-MM")
-                                String referenceDate,
-                                @PathParam("userId") UUID userId) {
-        List<SummaryInvoice> result = this.service.getResumeInvoice(referenceDate, userId);
+                                String referenceDate) {
+        List<SummaryInvoice> result = this.service.getResumeInvoice(referenceDate, securityContext.getInstance().get().userId);
         return Response.ok(result).build();
 
     }

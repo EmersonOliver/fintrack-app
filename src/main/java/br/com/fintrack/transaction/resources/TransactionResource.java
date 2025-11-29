@@ -1,5 +1,6 @@
 package br.com.fintrack.transaction.resources;
 
+import br.com.fintrack.core.security.AuthSecurityContext;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
 import br.com.fintrack.transaction.service.ExportService;
 import br.com.fintrack.transaction.service.TransactionService;
@@ -19,6 +20,7 @@ public class TransactionResource {
 
     private final TransactionService transactionService;
     private final ExportService exportService;
+    private final AuthSecurityContext securityContext;
 
     @POST
     @Path("create")
@@ -31,9 +33,10 @@ public class TransactionResource {
     @POST
     @Path("update/{transactionId}")
     public Response updateTransaction(@PathParam("transactionId") UUID transactionId,
-                                      @HeaderParam("userId") UUID userId,
+
                                       TransactionRequest request) {
         log.info("Update transaction {}", request.toString());
+        UUID userId = securityContext.getInstance().get().userId;
         var response = transactionService.updateTransaction(transactionId, userId, request);
         return Response.ok(response).encoding("UTF-8").build();
     }
@@ -50,8 +53,8 @@ public class TransactionResource {
 
     @GET
     @Path("load/{transactionId}")
-    public Response loadTransactionById(@PathParam("transactionId") UUID transactionId,
-                                        @HeaderParam("user-id") UUID userId) {
+    public Response loadTransactionById(@PathParam("transactionId") UUID transactionId) {
+        UUID userId = securityContext.getInstance().get().userId;
         log.info("load transaction by ids");
         var response = transactionService.loadByTransactionId(transactionId, userId);
         return Response.ok(response).encoding("UTF-8").build();
@@ -66,15 +69,14 @@ public class TransactionResource {
     }
 
     @GET
-    @Path("export/csv/{userId}")
+    @Path("export/csv")
     @Produces("text/csv")
-    public Response exportByCardId(@PathParam("userId") UUID userId) {
-
+    public Response exportByCardId() {
+        UUID userId = securityContext.getInstance().get().userId;
         byte[] file = exportService.generateCsvByUser(userId);
-
         return Response.ok(file)
                 .header("Content-Disposition",
-                        "attachment; filename=transactions-" + userId + YearMonth.now() +".csv")
+                        "attachment; filename=transactions-" + userId + YearMonth.now() + ".csv")
                 .build();
     }
 }
