@@ -4,6 +4,7 @@ import br.com.fintrack.common.exceptions.UsersException;
 import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.user.repository.UserRepository;
 import br.com.fintrack.user.resources.request.UserRequest;
+import br.com.fintrack.user.service.AuthService;
 import br.com.fintrack.user.service.UserService;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,6 +12,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -19,6 +21,8 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+
+    private final AuthService authService;
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -58,5 +62,15 @@ public class UserServiceImpl implements UserService {
             return false;
         }
         return BcryptUtil.matches(password, user.getPasswordHash());
+    }
+
+    @Override
+    public Optional<UserEntity> findByEmail(String email) {
+        return Optional.ofNullable(userRepository.findByEmail(email));
+    }
+
+    @Override
+    public String getTokenUser(String email, String password) {
+        return authService.getTokenUser(email, password);
     }
 }

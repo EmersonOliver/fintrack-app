@@ -19,4 +19,5 @@ public interface TransactionService {
 
     List<TransactionEntity> loadTransactionsByCard(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate);
 
+    void update(TransactionEntity tr);
 }

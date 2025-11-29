@@ -41,6 +41,7 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionResponse create(TransactionRequest request) {
         var card = cardService.loadCardById(request.cardId())
                 .orElseThrow(() -> new UsersException("Cartao não encontrado"));
+
         var wallet = walletService.findEntityById(UUID.fromString(request.walletId()))
                 .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
@@ -154,6 +155,12 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public List<TransactionEntity> loadTransactionsByCard(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate) {
         return transactionRepository.findByUserIdAndCardId(userId, cardId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional
+    public void update(TransactionEntity tr) {
+        this.transactionRepository.persistAndFlush(tr);
     }
 
     private CardEntity loadCardIfProvided(String cardId, UUID userId) {

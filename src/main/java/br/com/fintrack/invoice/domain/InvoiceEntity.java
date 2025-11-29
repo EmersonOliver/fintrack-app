@@ -2,6 +2,7 @@ package br.com.fintrack.invoice.domain;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.InvoiceStatus;
+import br.com.fintrack.transaction.domain.TransactionEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Builder
 @Data
@@ -43,6 +45,9 @@ public class InvoiceEntity implements Serializable {
 
     @Column(name = "status")
     private InvoiceStatus status;
+
+    @OneToMany(mappedBy = "invoice")
+    private List<TransactionEntity> transactions;
 
 
 }
