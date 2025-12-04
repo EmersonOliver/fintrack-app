@@ -34,12 +34,13 @@ public class UserResource {
                 .build();
     }
 
+
     @POST
     @Path("login")
     public Response userLogin(UserRequest userRequest) {
         Map<String, String> mapResponse = new HashMap<>();
         mapResponse.put("token", userService.getTokenUser(userRequest.email(), userRequest.password()));
-       return Response.ok(mapResponse).build();
+        return Response.ok(mapResponse).build();
     }
 
     @GET
