@@ -79,4 +79,23 @@ public class TransactionEntity implements Serializable {
     @JoinColumn(name = "invoice_transaction_id", referencedColumnName = "invoice_id",
             foreignKey = @ForeignKey(name = "fk_invoice_transaction"))
     private InvoiceEntity invoice;
+
+    @PrePersist
+    @PreUpdate
+    private void validateState() {
+
+        if (type == TransactionType.INCOME) {
+            if (card != null || invoice != null || Boolean.TRUE.equals(installment)) {
+                throw new IllegalStateException("INCOME não pode ter cartão, fatura ou parcelamento");
+            }
+        }
+
+        if (method == PaymentMethod.DEBIT && Boolean.TRUE.equals(installment)) {
+            throw new IllegalStateException("Débito não pode ser parcelado");
+        }
+
+        if (method == PaymentMethod.CREDIT && installmentTotal != null && installmentTotal > 1 && invoice == null) {
+            throw new IllegalStateException("Crédito parcelado deve possuir fatura");
+        }
+    }
 }

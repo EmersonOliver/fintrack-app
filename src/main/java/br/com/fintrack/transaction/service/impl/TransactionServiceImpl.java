@@ -2,6 +2,8 @@ package br.com.fintrack.transaction.service.impl;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
+import br.com.fintrack.common.enums.CardType;
+import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.common.exceptions.CardNotFoundException;
 import br.com.fintrack.common.exceptions.TransactionExceedsLimitsException;
 import br.com.fintrack.common.exceptions.TransactionNotFoundException;
@@ -13,6 +15,7 @@ import br.com.fintrack.transaction.resources.response.TransactionResponse;
 import br.com.fintrack.transaction.service.TransactionService;
 import br.com.fintrack.user.service.UserService;
 import br.com.fintrack.wallet.domain.WalletEntity;
+import br.com.fintrack.wallet.resources.request.WalletRequest;
 import br.com.fintrack.wallet.service.WalletService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -39,42 +42,132 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
-        var card = cardService.loadCardById(request.cardId())
-                .orElseThrow(() -> new UsersException("Cartao não encontrado"));
+        if (request.type() == TransactionType.INCOME) {
+            return processIncome(request);
+        }
+        return processExpense(request);
+    }
+
+    private TransactionResponse processIncome(TransactionRequest request) {
 
         var wallet = walletService.findEntityById(UUID.fromString(request.walletId()))
                 .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
-        BigDecimal totalAmount = request.amount();
-        int totalInstallments = request.installmentTotal() != null ? request.installmentTotal() : 1;
-        BigDecimal installmentValue = totalAmount.divide(BigDecimal.valueOf(totalInstallments), 2, RoundingMode.HALF_UP);
+        wallet.setBalance(
+                wallet.getBalance().add(request.amount())
+        );
 
-        if (totalAmount.compareTo(card.getLimitAvailable()) > 0)
-            throw new TransactionExceedsLimitsException(String.format("Transação excede o limite disponível de R$ %s", card.getLimitAvailable()));
+        walletService.update(wallet.getWalletId(), new WalletRequest(wallet.getWalletName(),
+                wallet.getWalletType(),
+                wallet.getActive(), wallet.getBalance()));
 
-
-        var transaction = TransactionEntity.builder()
+        TransactionEntity transaction = TransactionEntity.builder()
                 .description(request.description())
                 .amount(request.amount())
-                .installmentValue(installmentValue)
                 .date(LocalDate.parse(request.date()))
-                .type(request.type())
-                .generated(!(totalInstallments > 1))
+                .type(TransactionType.INCOME)
                 .method(request.method())
-                .installmentTotal(totalInstallments)
-                .installment(totalInstallments > 1)
-                .installmentNumber(request.installmentNumber())
-                .installmentTotal(request.installmentTotal())
-                .card(card)
                 .wallet(wallet)
-                .userTransaction(card != null ? card.getOwner() : wallet.getOwner())
+                .userTransaction(wallet.getOwner())
+                .generated(true)
+                .installment(false)
                 .build();
 
         transactionRepository.persist(transaction);
-        BigDecimal limitUsed = card.getLimitUsed().add(totalAmount);
-        card.setLimitUsed(limitUsed);
+
+        return TransactionResponse.fromEntity(transaction);
+    }
+
+    private TransactionResponse processExpense(TransactionRequest request) {
+
+        var wallet = walletService.findEntityById(UUID.fromString(request.walletId()))
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        CardEntity card = null;
+
+        if (request.cardId() != null) {
+            card = cardService.loadCardById(request.cardId())
+                    .orElseThrow(() -> new UsersException("Cartão não encontrado"));
+        }
+
+        if (card != null && card.getCardType() == CardType.CREDIT) {
+            return processCreditExpense(request, card, wallet);
+        }
+
+        return processDebitExpense(request, wallet);
+    }
+
+    private TransactionResponse processCreditExpense(
+            TransactionRequest request,
+            CardEntity card,
+            WalletEntity wallet
+    ) {
+        BigDecimal totalAmount = request.amount();
+        int totalInstallments = request.installmentTotal() != null ? request.installmentTotal() : 1;
+
+        if (totalAmount.compareTo(card.getLimitAvailable()) > 0) {
+            throw new TransactionExceedsLimitsException(
+                    "Transação excede o limite disponível de R$ " + card.getLimitAvailable()
+            );
+        }
+
+        BigDecimal installmentValue = totalAmount.divide(
+                BigDecimal.valueOf(totalInstallments),
+                2,
+                RoundingMode.HALF_UP
+        );
+
+        TransactionEntity transaction = TransactionEntity.builder()
+                .description(request.description())
+                .amount(totalAmount)
+                .installmentValue(installmentValue)
+                .date(LocalDate.parse(request.date()))
+                .type(TransactionType.EXPENSE)
+                .method(request.method())
+                .installment(totalInstallments > 1)
+                .installmentTotal(totalInstallments)
+                .installmentNumber(1)
+                .generated(totalInstallments == 1)
+                .card(card)
+                .wallet(wallet)
+                .userTransaction(card.getOwner())
+                .build();
+
+        transactionRepository.persist(transaction);
+
+        card.setLimitUsed(card.getLimitUsed().add(totalAmount));
         card.updateAvailableLimit();
         cardService.updateLimit(card);
+
+        return TransactionResponse.fromEntity(transaction);
+    }
+
+    private TransactionResponse processDebitExpense(
+            TransactionRequest request,
+            WalletEntity wallet
+    ) {
+        if (wallet.getBalance().compareTo(request.amount()) < 0) {
+            throw new IllegalStateException("Saldo insuficiente na carteira");
+        }
+
+        wallet.setBalance(wallet.getBalance().subtract(request.amount()));
+        walletService.update(wallet.getWalletId(), new WalletRequest(wallet.getWalletName(),
+                wallet.getWalletType(), wallet.getActive(), wallet.getBalance()));
+
+        TransactionEntity transaction = TransactionEntity.builder()
+                .description(request.description())
+                .amount(request.amount())
+                .date(LocalDate.parse(request.date()))
+                .type(TransactionType.EXPENSE)
+                .method(request.method())
+                .wallet(wallet)
+                .userTransaction(wallet.getOwner())
+                .generated(true)
+                .installment(false)
+                .build();
+
+        transactionRepository.persist(transaction);
+
         return TransactionResponse.fromEntity(transaction);
     }
 
@@ -112,6 +205,10 @@ public class TransactionServiceImpl implements TransactionService {
 
         if (!transaction.getUserTransaction().getUserId().equals(userId)) {
             throw new UsersException("Você não pode atualizar uma transação que não é sua");
+        }
+
+        if (request.type() == TransactionType.INCOME) {
+            return processIncome(request);
         }
 
         CardEntity card = loadCardIfProvided(request.cardId(), userId);
@@ -199,5 +296,6 @@ public class TransactionServiceImpl implements TransactionService {
 
         return wallet;
     }
+
 
 }

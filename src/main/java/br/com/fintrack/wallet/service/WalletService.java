@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface WalletService {
 
-    WalletResponse create(WalletRequest walletRequest);
+    WalletResponse create(WalletRequest walletRequest, UUID ownerId);
     List<WalletResponse> listByOwner(UUID ownerId);
     WalletResponse findById(UUID walletId);
     WalletResponse update(UUID walletId, WalletRequest request);
