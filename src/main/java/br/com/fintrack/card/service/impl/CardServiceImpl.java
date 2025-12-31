@@ -59,9 +59,9 @@ public class CardServiceImpl implements CardService {
                 .active(cardRequest.active())
                 .closingDate(cardRequest.closingDate())
                 .dueDate(cardRequest.dueDate())
-                .limitAvailable(cardRequest.limitAvailable())
+                .limitAvailable(cardRequest.limitAvailable() != null ? cardRequest.limitAvailable() : cardRequest.limitTotal())
                 .limitTotal(cardRequest.limitTotal())
-                .limitUsed(cardRequest.limitUsed())
+                .limitUsed(cardRequest.limitUsed() != null ? cardRequest.limitUsed() : BigDecimal.ZERO)
                 .owner(user)
                 .parentCard(parentCard)
                 .build();

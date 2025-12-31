@@ -42,7 +42,7 @@ public class TransactionResource {
     }
 
     @POST
-    @Path("lote")
+    @Path("create/bulk")
     public Response createLote(List<TransactionRequest> request) {
         log.info("Creating transaction payload= {}", request.toString());
         for (TransactionRequest transactionRequest : request) {
