@@ -35,7 +35,8 @@ public class JwtTokenFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
-        if (containerRequestContext.getUriInfo().getPath().contains("login")) {
+        if (containerRequestContext.getUriInfo().getPath().contains("login") ||
+                containerRequestContext.getUriInfo().getPath().contains("/user/create")) {
             return;
         }
         String tokenUserId = jsonWebToken.getSubject();

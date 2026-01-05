@@ -3,11 +3,13 @@ package br.com.fintrack.transaction.service.impl;
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
 import br.com.fintrack.common.enums.CardType;
+import br.com.fintrack.common.enums.InvoiceStatus;
 import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.common.exceptions.CardNotFoundException;
 import br.com.fintrack.common.exceptions.TransactionExceedsLimitsException;
 import br.com.fintrack.common.exceptions.TransactionNotFoundException;
 import br.com.fintrack.common.exceptions.UsersException;
+import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.transaction.repository.TransactionRepository;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
@@ -131,6 +133,8 @@ public class TransactionServiceImpl implements TransactionService {
                 .card(card)
                 .wallet(wallet)
                 .userTransaction(card.getOwner())
+                .invoice(card.getInvoices().stream().filter(status-> status.getStatus()
+                        .equals(InvoiceStatus.OPEN)).findFirst().orElse(null))
                 .build();
 
         transactionRepository.persist(transaction);

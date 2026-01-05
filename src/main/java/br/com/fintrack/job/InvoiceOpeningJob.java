@@ -49,6 +49,8 @@ public class InvoiceOpeningJob {
                     .firstResultOptional().orElse(null);
             if (invoiceEntity != null) {
                 continue;
+            }else {
+                createNewInvoice(card);
             }
             if (LocalDate.now().compareTo(LocalDate.now().withDayOfMonth(card.getClosingDate())) > 0L) {
                 createNewInvoice(card);
