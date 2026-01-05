@@ -1,5 +1,6 @@
 package br.com.fintrack.wallet.resources;
 
+import br.com.fintrack.core.security.AuthSecurityContext;
 import br.com.fintrack.wallet.resources.request.WalletRequest;
 import br.com.fintrack.wallet.resources.response.WalletResponse;
 import br.com.fintrack.wallet.service.WalletService;
@@ -18,17 +19,20 @@ import java.util.UUID;
 public class WalletResource {
 
     private final WalletService walletService;
+    private final AuthSecurityContext authSecurityContext;
 
     @POST
     @Path("create")
     public Response create(WalletRequest request) {
-        WalletResponse wallet = walletService.create(request);
+        UUID ownerId = authSecurityContext.getInstance().get().userId;
+        WalletResponse wallet = walletService.create(request, ownerId);
         return Response.status(Response.Status.CREATED).entity(wallet).build();
     }
 
     @GET
-    @Path("/owner/{ownerId}")
-    public Response listByOwner(@PathParam("ownerId") UUID ownerId) {
+    @Path("/owner")
+    public Response listByOwner() {
+        UUID ownerId = authSecurityContext.getInstance().get().userId;
         List<WalletResponse> wallets = walletService.listByOwner(ownerId);
         return Response.ok(wallets).build();
     }

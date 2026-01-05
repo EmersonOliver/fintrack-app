@@ -6,12 +6,16 @@ import br.com.fintrack.user.repository.UserRepository;
 import br.com.fintrack.user.resources.request.UserRequest;
 import br.com.fintrack.user.service.AuthService;
 import br.com.fintrack.user.service.UserService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -67,6 +71,53 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<UserEntity> findByEmail(String email) {
         return Optional.ofNullable(userRepository.findByEmail(email));
+    }
+
+    @Override
+    public List<JsonNode> jsonTable(String tableName, String schemaName, int page, int size) {
+        if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("Invalid table name");
+        }
+
+        if (!schemaName.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("Invalid schema name");
+        }
+
+        EntityManager em = this.userRepository.getEntityManager();
+        page = page -1;
+        int offset = page * size;
+
+        // ───────────────────────────────────────────────
+        // 2. SQL nativo usando row_to_json + paginação
+        // ───────────────────────────────────────────────
+        String sql = """
+        SELECT row_to_json(t)
+        FROM (
+            SELECT *
+            FROM %s.%s
+            LIMIT :size OFFSET :offset
+        ) t
+        """.formatted(schemaName, tableName);
+
+        // ───────────────────────────────────────────────
+        // 3. Execução da query e conversão para JsonNode
+        // ───────────────────────────────────────────────
+        List<String> rawJsonList = em.createNativeQuery(sql)
+                .setParameter("size", size)
+                .setParameter("offset", offset)
+                .getResultList();
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        return rawJsonList.stream()
+                .map(json -> {
+                    try {
+                        return mapper.readTree(json);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Invalid JSON from database", e);
+                    }
+                })
+                .toList();
     }
 
     @Override

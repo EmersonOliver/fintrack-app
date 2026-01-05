@@ -25,11 +25,11 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public WalletResponse create(WalletRequest request) {
-        var user = userService.loadById(UUID.fromString(request.ownerId()));
+    public WalletResponse create(WalletRequest request, UUID ownerId) {
+        var user = userService.loadById(ownerId);
         if (user != null) {
             WalletEntity entity = WalletEntity.builder()
-                    .ownerId(UUID.fromString(request.ownerId()))
+                    .ownerId(user.getUserId())
                     .walletName(request.walletName())
                     .walletType(request.walletType())
                     .active(request.active() != null ? request.active() : true)

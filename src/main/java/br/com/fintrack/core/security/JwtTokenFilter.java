@@ -3,10 +3,8 @@ package br.com.fintrack.core.security;
 import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.user.service.UserService;
 import io.vertx.core.http.HttpServerRequest;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -37,7 +35,8 @@ public class JwtTokenFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
-        if (containerRequestContext.getUriInfo().getPath().contains("login")) {
+        if (containerRequestContext.getUriInfo().getPath().contains("login") ||
+                containerRequestContext.getUriInfo().getPath().contains("/user/create")) {
             return;
         }
         String tokenUserId = jsonWebToken.getSubject();
