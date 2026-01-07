@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
 @Builder
@@ -28,8 +30,15 @@ public class InvoiceEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sq_invoice_id")
     private Long invoiceId;
 
-    @ManyToOne
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "card_id")
     private CardEntity card;
+
+    @Column(name = "reference_year", nullable = false)
+    private Integer referenceYear;
+
+    @Column(name = "reference_month", nullable = false)
+    private Integer referenceMonth;
 
     @Column(name = "period_start")
     private LocalDate periodStart;
@@ -38,7 +47,7 @@ public class InvoiceEntity implements Serializable {
     private LocalDate periodEnd;
 
     @Column(name = "created_at")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
@@ -49,5 +58,8 @@ public class InvoiceEntity implements Serializable {
     @OneToMany(mappedBy = "invoice")
     private List<TransactionEntity> transactions;
 
-
+    @Transient
+    public YearMonth getReference() {
+        return YearMonth.of(referenceYear, referenceMonth);
+    }
 }

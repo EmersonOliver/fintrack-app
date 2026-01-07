@@ -2,7 +2,9 @@ package br.com.fintrack.invoice.service.impl;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
+import br.com.fintrack.common.enums.InvoiceStatus;
 import br.com.fintrack.common.exceptions.UsersException;
+import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.invoice.repository.InvoiceRepository;
 import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
@@ -15,7 +17,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +49,13 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         invoiceRepository.persist(entityInvoice);
         log.info("Invoice Saved Successfully");
+    }
+
+    @Override
+    public InvoiceEntity getOrCreateInvoice(CardEntity card, YearMonth reference) {
+        return invoiceRepository
+                .findOpenByCardAndReference(card.getCardId(), reference.getYear(), reference.getMonthValue())
+                .orElseGet(() -> createInvoice(card, reference));
     }
 
     @Override
@@ -89,6 +101,49 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private LocalDate referenceDateParse(String referenceDate, Integer closingDate) {
         return LocalDate.parse(referenceDate + "-" + closingDate);
+    }
+
+    private InvoiceEntity createInvoice(CardEntity card, YearMonth reference) {
+
+        LocalDate periodStart = LocalDate.of(
+                reference.getYear(),
+                reference.getMonth(),
+                Math.min(card.getClosingDate(), reference.lengthOfMonth())
+        );
+
+        LocalDate periodEnd = LocalDate.of(
+                reference.plusMonths(1).getYear(),
+                reference.plusMonths(1).getMonth(),
+                Math.min(card.getDueDate(), reference.plusMonths(1).lengthOfMonth())
+        );
+
+        InvoiceStatus status = resolveStatus(reference);
+
+        InvoiceEntity invoice = InvoiceEntity.builder()
+                .card(card)
+                .periodStart(periodStart)
+                .periodEnd(periodEnd)
+                .createdAt(LocalDateTime.now())
+                .status(status)
+                .totalAmount(BigDecimal.ZERO)
+                .referenceYear(reference.getYear())
+                .referenceMonth(reference.getMonthValue())
+                .build();
+
+        invoiceRepository.persist(invoice);
+        return invoice;
+    }
+
+    private InvoiceStatus resolveStatus(YearMonth reference) {
+        YearMonth now = YearMonth.now();
+
+        if (reference.isAfter(now)) {
+            return InvoiceStatus.FUTURE;
+        }
+        if (reference.equals(now)) {
+            return InvoiceStatus.OPEN;
+        }
+        return InvoiceStatus.CLOSED;
     }
 
 

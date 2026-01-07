@@ -62,9 +62,12 @@ public class TransactionResource {
 
     @GET
     @Path("load/all")
-    public Response loadAllTransactions(@HeaderParam("user-id") UUID userId) {
+    public Response loadAllTransactions(@QueryParam("page") @DefaultValue("0") Integer page,
+                                        @QueryParam("size") @DefaultValue("10") Integer size) {
         log.info("loading all transactions by user");
-        var response = transactionService.loadAllTransactions(userId);
+        UUID userId = securityContext.getInstance().get().userId;
+        var response = transactionService.loadAllTransactions(userId, page, size);
+
         return Response.ok(response).encoding("UTF-8").build();
     }
 

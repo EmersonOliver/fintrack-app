@@ -31,7 +31,7 @@ public record UserProfileResponse(
                 userEntity.getWallets().stream()
                         .flatMap(w -> w.getTransactions().stream())
                         .filter(tr -> isInCurrentMonth(tr.getDate()))
-                        .map(tr -> tr.getType() == TransactionType.INCOME
+                        .map(tr -> tr.getType().equals(TransactionType.INCOME)
                                 ? tr.getAmount()
                                 : tr.getAmount().negate()
                         )
@@ -39,16 +39,16 @@ public record UserProfileResponse(
 
         BigDecimal creditCycleSpending =
                 userEntity.getCards().stream()
-                        .filter(card -> card.getCardType() == CardType.CREDIT)
+                        .filter(card -> card.getCardType().equals(CardType.CREDIT))
                         .flatMap(card -> {
-                            LocalDate start = calculateStartDate(card.getClosingDate(), LocalDate.now());
                             LocalDate end = calculateEndDate(card.getClosingDate(), LocalDate.now());
+                            LocalDate start = calculateStartDate(card.getClosingDate(), end);
 
                             return card.getTransactions().stream()
                                     .filter(tr ->
                                             !tr.getDate().isBefore(start) &&
                                                     tr.getDate().isBefore(end) &&
-                                                    tr.getType() == TransactionType.EXPENSE
+                                                    tr.getType().equals(TransactionType.EXPENSE)
                                     )
                                     .map(tr -> tr.getInstallment() != null && tr.getInstallment()
                                             ? tr.getInstallmentValue()
@@ -73,31 +73,24 @@ public record UserProfileResponse(
     }
 
     public static LocalDate calculateEndDate(int closingDay, LocalDate today) {
-
         int safeDay = Math.min(closingDay, today.lengthOfMonth());
-
-        LocalDate endDate = LocalDate.of(
+        return LocalDate.of(
                 today.getYear(),
                 today.getMonth(),
                 safeDay
         );
-
-        // Se hoje ainda não chegou no fechamento, o fechamento válido é o mês anterior
-        if (today.isBefore(endDate)) {
-            LocalDate previousMonth = today.minusMonths(1);
-            safeDay = Math.min(closingDay, previousMonth.lengthOfMonth());
-
-            endDate = LocalDate.of(
-                    previousMonth.getYear(),
-                    previousMonth.getMonth(),
-                    safeDay
-            );
-        }
-
-        return endDate;
     }
+
     public static LocalDate calculateStartDate(int closingDay, LocalDate today) {
-        return calculateEndDate(closingDay, today).minusMonths(1);
+        LocalDate previousMonth = today.minusMonths(1);
+
+        int safeDay = Math.min(closingDay, previousMonth.lengthOfMonth());
+
+        return LocalDate.of(
+                previousMonth.getYear(),
+                previousMonth.getMonth(),
+                safeDay
+        );
     }
 
 }

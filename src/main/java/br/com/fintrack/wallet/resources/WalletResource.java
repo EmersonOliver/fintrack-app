@@ -31,9 +31,10 @@ public class WalletResource {
 
     @GET
     @Path("/owner")
-    public Response listByOwner() {
+    public Response listByOwner(@QueryParam("page") @DefaultValue("0") Integer page,
+                                @QueryParam("size") @DefaultValue("10") Integer size) {
         UUID ownerId = authSecurityContext.getInstance().get().userId;
-        List<WalletResponse> wallets = walletService.listByOwner(ownerId);
+        var wallets = walletService.listByOwner(ownerId, page, size);
         return Response.ok(wallets).build();
     }
 

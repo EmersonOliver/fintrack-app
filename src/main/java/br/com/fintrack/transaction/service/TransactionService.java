@@ -1,5 +1,6 @@
 package br.com.fintrack.transaction.service;
 
+import br.com.fintrack.common.responses.dto.PageResponse;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
 import br.com.fintrack.transaction.resources.response.TransactionResponse;
@@ -13,7 +14,7 @@ public interface TransactionService {
 
     TransactionResponse loadByTransactionId(UUID transactionId, UUID userId);
 
-    List<TransactionResponse> loadAllTransactions(UUID userId);
+    PageResponse<TransactionResponse> loadAllTransactions(UUID userId, Integer page, Integer size);
 
     TransactionResponse updateTransaction(UUID transactionId, UUID userId, TransactionRequest request);
 
