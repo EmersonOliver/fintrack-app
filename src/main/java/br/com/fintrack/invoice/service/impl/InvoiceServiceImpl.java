@@ -59,6 +59,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public void updateInvoiceEntity(InvoiceEntity invoiceEntity) {
+        this.invoiceRepository.persist(invoiceEntity);
+    }
+
+    @Override
     public List<InvoiceResponse> findAllInvoiceByCardIdWithResponse(final String cardId) {
         var invoicesEntityList = invoiceRepository.find("where card.cardId =:cardId ",
                 Parameters.with("cardId", cardId)).list();
@@ -112,9 +117,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         );
 
         LocalDate periodEnd = LocalDate.of(
-                reference.plusMonths(1).getYear(),
-                reference.plusMonths(1).getMonth(),
-                Math.min(card.getDueDate(), reference.plusMonths(1).lengthOfMonth())
+                reference.getYear(),
+                reference.getMonth(),
+                Math.min(card.getDueDate(), reference.lengthOfMonth())
         );
 
         InvoiceStatus status = resolveStatus(reference);

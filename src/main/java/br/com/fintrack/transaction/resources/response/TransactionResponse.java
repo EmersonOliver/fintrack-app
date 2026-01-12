@@ -1,9 +1,11 @@
 package br.com.fintrack.transaction.resources.response;
 
 import br.com.fintrack.card.resources.response.CardResponse;
+import br.com.fintrack.common.enums.StatusTransaction;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.wallet.resources.response.WalletResponse;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,7 +21,10 @@ public record TransactionResponse(UUID transactionId,
                                   Boolean installment,
                                   Integer installmentNumber,
                                   Integer installmentTotal,
+                                  Boolean transactionRoot,
                                   CardResponse card,
+                                  StatusTransaction status,
+                                  @JsonIgnoreProperties("transactions")
                                   InvoiceResponse invoice,
                                   WalletResponse wallet) {
     public static TransactionResponse fromEntity(TransactionEntity entity) {
@@ -36,7 +41,9 @@ public record TransactionResponse(UUID transactionId,
                 entity.getInstallment(),
                 entity.getInstallmentNumber(),
                 entity.getInstallmentTotal(),
+                entity.getRootInstallment(),
                 entity.getCard() != null ? CardResponse.fromEntity(entity.getCard()) : null,
+                entity.getStatus() != null ? entity.getStatus() : StatusTransaction.IN_PROCESSING,
                 entity.getInvoice() != null ? InvoiceResponse.fromEntity(entity.getInvoice()) : null,
                 entity.getWallet() != null ? WalletResponse.fromEntity(entity.getWallet()) : null
         );

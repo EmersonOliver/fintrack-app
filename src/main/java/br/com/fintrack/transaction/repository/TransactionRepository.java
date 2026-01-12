@@ -1,5 +1,6 @@
 package br.com.fintrack.transaction.repository;
 
+import br.com.fintrack.common.enums.PaymentMethod;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
@@ -21,11 +22,12 @@ public class TransactionRepository implements PanacheRepositoryBase<TransactionE
         return find("userTransaction.userId = ?1 ORDER BY date ASC", userId);
     }
 
-    public List<TransactionEntity> findByUserIdAndCardId(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate) {
-        return find("userTransaction.userId = :userId AND card.cardId = :cardId and date >=:startDate and date < :endDate",
+    public PanacheQuery<TransactionEntity> findByUserIdAndCardId(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate) {
+        return find("userTransaction.userId = :userId AND card.cardId = :cardId and date >=:startDate and date < :endDate ",
                 Parameters.with("userId", userId)
-                        .and("cardId", cardId).and("startDate", startDate).and("endDate", endDate))
-                .list();
+                        .and("cardId", cardId)
+                        .and("startDate", startDate)
+                        .and("endDate", endDate));
     }
 
 

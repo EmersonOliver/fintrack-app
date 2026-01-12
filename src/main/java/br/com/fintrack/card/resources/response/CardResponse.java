@@ -18,11 +18,12 @@ public record CardResponse(UUID cardId,
                            BigDecimal limitAvailable,
                            BigDecimal limitUsed,
                            BigDecimal limitTotal,
+                           Integer dueDate,
+                           Integer closingDate,
                            Boolean active,
                            CardType cardType,
                            UUID parentCardId,
                            List<CardResponse> virtualCards,
-                           @JsonIgnoreProperties("card")
                            List<InvoiceResponse> invoices
 ) {
     public static CardResponse fromEntity(CardEntity entity) {
@@ -34,6 +35,8 @@ public record CardResponse(UUID cardId,
                 entity.getLimitAvailable(),
                 entity.getLimitUsed(),
                 entity.getLimitTotal(),
+                entity.getDueDate(),
+                entity.getClosingDate(),
                 entity.getActive(),
                 entity.getCardType(),
                 entity.getParentCard() != null ? entity.getParentCard().getCardId() : null,

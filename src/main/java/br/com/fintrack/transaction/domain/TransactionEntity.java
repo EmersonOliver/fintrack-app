@@ -2,6 +2,7 @@ package br.com.fintrack.transaction.domain;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.PaymentMethod;
+import br.com.fintrack.common.enums.StatusTransaction;
 import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.user.domain.UserEntity;
@@ -54,11 +55,18 @@ public class TransactionEntity implements Serializable {
     @Column(name = "generated")
     private Boolean generated;
 
+    @Column(name = "root_installment")
+    private Boolean rootInstallment;
+
     @Column(name = "installment_number")
     private Integer installmentNumber;
 
     @Column(name = "installment_total")
     private Integer installmentTotal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_status")
+    private StatusTransaction status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "card_id", referencedColumnName = "card_id",

@@ -2,6 +2,7 @@ package br.com.fintrack.user.resources.response;
 
 import br.com.fintrack.card.resources.response.CardResponse;
 import br.com.fintrack.common.enums.CardType;
+import br.com.fintrack.common.enums.PaymentMethod;
 import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.wallet.domain.WalletEntity;
@@ -48,7 +49,8 @@ public record UserProfileResponse(
                                     .filter(tr ->
                                             !tr.getDate().isBefore(start) &&
                                                     tr.getDate().isBefore(end) &&
-                                                    tr.getType().equals(TransactionType.EXPENSE)
+                                                    tr.getType().equals(TransactionType.EXPENSE) &&
+                                                    tr.getMethod().equals(PaymentMethod.CREDIT)
                                     )
                                     .map(tr -> tr.getInstallment() != null && tr.getInstallment()
                                             ? tr.getInstallmentValue()

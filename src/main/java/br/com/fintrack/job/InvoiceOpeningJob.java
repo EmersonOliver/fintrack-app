@@ -33,7 +33,7 @@ public class InvoiceOpeningJob {
     private final TransactionService transactionService;
 
     @Transactional
-    @Scheduled(cron = "1 * * * * ?") // todo dia 00:01
+    @Scheduled(cron = "0/10 * * * * ?") // todo dia 00:01
     public void ensureOpenInvoices() {
 
         LocalDate today = LocalDate.now();

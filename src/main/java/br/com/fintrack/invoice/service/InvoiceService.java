@@ -15,7 +15,7 @@ public interface InvoiceService {
     void saveInvoice(InvoiceRequest request, UUID cardId);
 
     InvoiceEntity getOrCreateInvoice(CardEntity card, YearMonth referenceMonth);
-
+    void updateInvoiceEntity(InvoiceEntity invoiceEntity);
     List<InvoiceResponse> findAllInvoiceByCardIdWithResponse(String cardId);
     InvoiceResponse updatedInvoice(Long invoiceId, InvoiceRequest request);
     List<SummaryInvoice> getResumeInvoice(String referenceDate,UUID userId);
