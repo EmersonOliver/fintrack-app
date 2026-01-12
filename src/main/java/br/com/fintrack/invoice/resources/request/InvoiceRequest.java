@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record InvoiceRequest(LocalDate periodStart,
                              LocalDate periodEnd,
@@ -18,7 +19,7 @@ public record InvoiceRequest(LocalDate periodStart,
                 .status(status)
                 .periodStart(periodStart)
                 .periodEnd(periodEnd)
-                .createdAt(LocalDate.now())
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 

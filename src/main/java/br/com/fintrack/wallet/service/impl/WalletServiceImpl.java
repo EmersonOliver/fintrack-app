@@ -1,18 +1,19 @@
 package br.com.fintrack.wallet.service.impl;
 
 import br.com.fintrack.common.exceptions.UsersException;
+import br.com.fintrack.common.responses.dto.PageResponse;
 import br.com.fintrack.user.service.UserService;
 import br.com.fintrack.wallet.domain.WalletEntity;
 import br.com.fintrack.wallet.repository.WalletRepository;
 import br.com.fintrack.wallet.resources.request.WalletRequest;
 import br.com.fintrack.wallet.resources.response.WalletResponse;
 import br.com.fintrack.wallet.service.WalletService;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,11 +44,11 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
-    public List<WalletResponse> listByOwner(UUID ownerId) {
-        return walletRepository.findByOwnerId(ownerId)
-                .stream()
-                .map(WalletResponse::fromEntity)
-                .toList();
+    public PageResponse<WalletResponse> listByOwner(UUID ownerId, int page, int size) {
+        var query = walletRepository.findByOwnerId(ownerId);
+        query.page(Page.of(page, size));
+        return new PageResponse<>(query.stream().toList().stream()
+                .map(WalletResponse::fromEntity).toList(), query.count(), page, size);
     }
 
     @Override
@@ -74,7 +75,7 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public Optional<WalletEntity> findEntityById(UUID walletId) {
-       return walletRepository.findByIdOptional(walletId);
+        return walletRepository.findByIdOptional(walletId);
     }
 
     @Transactional

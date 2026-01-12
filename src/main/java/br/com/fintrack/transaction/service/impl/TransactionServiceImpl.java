@@ -2,14 +2,12 @@ package br.com.fintrack.transaction.service.impl;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.card.service.CardService;
-import br.com.fintrack.common.enums.CardType;
-import br.com.fintrack.common.enums.InvoiceStatus;
-import br.com.fintrack.common.enums.TransactionType;
+import br.com.fintrack.common.enums.*;
 import br.com.fintrack.common.exceptions.CardNotFoundException;
 import br.com.fintrack.common.exceptions.TransactionExceedsLimitsException;
 import br.com.fintrack.common.exceptions.TransactionNotFoundException;
 import br.com.fintrack.common.exceptions.UsersException;
-import br.com.fintrack.invoice.domain.InvoiceEntity;
+import br.com.fintrack.common.responses.dto.PageResponse;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.transaction.repository.TransactionRepository;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
@@ -19,6 +17,7 @@ import br.com.fintrack.user.service.UserService;
 import br.com.fintrack.wallet.domain.WalletEntity;
 import br.com.fintrack.wallet.resources.request.WalletRequest;
 import br.com.fintrack.wallet.service.WalletService;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -69,8 +68,10 @@ public class TransactionServiceImpl implements TransactionService {
                 .date(LocalDate.parse(request.date()))
                 .type(TransactionType.INCOME)
                 .method(request.method())
+                .rootInstallment(Boolean.TRUE)
                 .wallet(wallet)
                 .userTransaction(wallet.getOwner())
+                .status(StatusTransaction.PROCESSED)
                 .generated(true)
                 .installment(false)
                 .build();
@@ -81,7 +82,9 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private TransactionResponse processExpense(TransactionRequest request) {
-
+        if (request.walletId().isEmpty()) {
+            throw new IllegalArgumentException("Wallet no selected");
+        }
         var wallet = walletService.findEntityById(UUID.fromString(request.walletId()))
                 .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
@@ -92,8 +95,36 @@ public class TransactionServiceImpl implements TransactionService {
                     .orElseThrow(() -> new UsersException("Cartão não encontrado"));
         }
 
-        if (card != null && card.getCardType() == CardType.CREDIT) {
+        if (card != null && card.getCardType() == CardType.CREDIT && request.method().equals(PaymentMethod.CREDIT)) {
             return processCreditExpense(request, card, wallet);
+        }
+        if (wallet != null && wallet.getActive() && request.method().equals(PaymentMethod.CASH)) {
+            BigDecimal walletAmount = wallet.getBalance();
+            BigDecimal expenseAmount = request.amount();
+            walletAmount = walletAmount.subtract(expenseAmount);
+
+            wallet.setBalance(walletAmount);
+
+            walletService.update(wallet.getWalletId(),
+                    new WalletRequest(wallet.getWalletName(), wallet.getWalletType(),
+                            wallet.getActive(), walletAmount));
+            TransactionEntity transaction = TransactionEntity.builder()
+                    .description(request.description())
+                    .amount(expenseAmount)
+                    .date(LocalDate.parse(request.date()))
+                    .type(TransactionType.EXPENSE)
+                    .rootInstallment(Boolean.TRUE)
+                    .method(request.method())
+                    .installmentNumber(1)
+                    .card(card)
+                    .wallet(wallet)
+                    .status(StatusTransaction.PROCESSED)
+                    .userTransaction(card.getOwner())
+                    .build();
+
+            transactionRepository.persist(transaction);
+
+            return TransactionResponse.fromEntity(transaction);
         }
 
         return processDebitExpense(request, wallet);
@@ -119,6 +150,15 @@ public class TransactionServiceImpl implements TransactionService {
                 RoundingMode.HALF_UP
         );
 
+        var invoiceCard = card.getInvoices().stream().filter(status -> status.getStatus()
+                .equals(InvoiceStatus.OPEN)).findFirst().orElse(null);
+
+//        if (invoiceCard != null) {
+//            BigDecimal invoiceAmount = invoiceCard.getTotalAmount();
+//            invoiceAmount = invoiceAmount.add(installmentValue);
+//            invoiceCard.setTotalAmount(invoiceAmount);
+//        }
+
         TransactionEntity transaction = TransactionEntity.builder()
                 .description(request.description())
                 .amount(totalAmount)
@@ -129,12 +169,13 @@ public class TransactionServiceImpl implements TransactionService {
                 .installment(totalInstallments > 1)
                 .installmentTotal(totalInstallments)
                 .installmentNumber(1)
+                .rootInstallment(Boolean.TRUE)
                 .generated(totalInstallments == 1)
+                .status(StatusTransaction.IN_PROCESSING)
                 .card(card)
                 .wallet(wallet)
                 .userTransaction(card.getOwner())
-                .invoice(card.getInvoices().stream().filter(status-> status.getStatus()
-                        .equals(InvoiceStatus.OPEN)).findFirst().orElse(null))
+                .invoice(invoiceCard)
                 .build();
 
         transactionRepository.persist(transaction);
@@ -165,7 +206,9 @@ public class TransactionServiceImpl implements TransactionService {
                 .type(TransactionType.EXPENSE)
                 .method(request.method())
                 .wallet(wallet)
+                .rootInstallment(Boolean.TRUE)
                 .userTransaction(wallet.getOwner())
+                .status(StatusTransaction.PROCESSED)
                 .generated(true)
                 .installment(false)
                 .build();
@@ -189,10 +232,11 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public List<TransactionResponse> loadAllTransactions(UUID userId) {
-        var allTransactionsResponse = transactionRepository.findByUserId(userId);
-        return allTransactionsResponse.stream().map(TransactionResponse::fromEntity)
-                .toList();
+    public PageResponse<TransactionResponse> loadAllTransactions(UUID userId, Integer page, Integer size) {
+        var query = transactionRepository.findByUserId(userId);
+        query.page(Page.of(page, size));
+        return new PageResponse<>(query.list().stream().map(TransactionResponse::fromEntity)
+                .toList(), query.count(), page, size);
     }
 
     @Override
@@ -228,7 +272,6 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setInstallment(request.installment());
         transaction.setInstallmentNumber(request.installmentNumber());
         transaction.setInstallmentTotal(request.installmentTotal());
-
         transaction.setCard(card);
         transaction.setWallet(wallet);
 
@@ -254,8 +297,24 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    public PageResponse<TransactionResponse> loadTransactionsByCard(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate, int page, int size, int referenceMonth, int referenceYear) {
+        CardEntity card = cardService.loadCardById(cardId.toString())
+                .orElseThrow(() -> new CardNotFoundException("Cartao nao encontrado"));
+
+        var query = transactionRepository.findByUserIdAndCardId(userId, card.getCardId(),
+                startDate.withDayOfMonth(card.getClosingDate()).withMonth(referenceMonth).withYear(referenceYear).minusMonths(1),
+                endDate.withDayOfMonth(card.getClosingDate()).withMonth(referenceMonth).withYear(referenceYear).plusMonths(1));
+        query.page(Page.of(page, size));
+        return new PageResponse<>(query.list().stream().filter(res ->
+                        res.getInvoice().getReferenceMonth().equals(referenceMonth)
+                                && res.getInvoice().getReferenceYear().equals(referenceYear))
+                .map(TransactionResponse::fromEntity)
+                .toList(), query.count(), page, size);
+    }
+
+    @Override
     public List<TransactionEntity> loadTransactionsByCard(UUID userId, UUID cardId, LocalDate startDate, LocalDate endDate) {
-        return transactionRepository.findByUserIdAndCardId(userId, cardId, startDate, endDate);
+        return transactionRepository.findByUserIdAndCardId(userId, cardId, startDate, endDate).list();
     }
 
     @Override

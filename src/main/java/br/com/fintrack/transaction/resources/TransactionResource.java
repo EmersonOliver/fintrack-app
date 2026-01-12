@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
@@ -62,10 +63,24 @@ public class TransactionResource {
 
     @GET
     @Path("load/all")
-    public Response loadAllTransactions(@HeaderParam("user-id") UUID userId) {
+    public Response loadAllTransactions(@QueryParam("page") @DefaultValue("0") Integer page,
+                                        @QueryParam("size") @DefaultValue("10") Integer size) {
         log.info("loading all transactions by user");
-        var response = transactionService.loadAllTransactions(userId);
+        UUID userId = securityContext.getInstance().get().userId;
+        var response = transactionService.loadAllTransactions(userId, page, size);
         return Response.ok(response).encoding("UTF-8").build();
+    }
+
+    @GET
+    @Path("loadByCard/{cardId}")
+    public Response loadTransactionByCard(@PathParam("cardId") UUID cardId,
+                                          @QueryParam("referenceMonth") Integer referenceMonth,
+                                          @QueryParam("referenceYear") Integer referenceYear,
+                                          @QueryParam("page") @DefaultValue("0") Integer page,
+                                          @QueryParam("size") @DefaultValue("10") Integer size) {
+        UUID userId = securityContext.getInstance().get().userId;
+        var transactions = transactionService.loadTransactionsByCard(userId, cardId, LocalDate.now(), LocalDate.now(), page, size,referenceMonth, referenceYear);
+        return Response.ok(transactions).build();
     }
 
     @GET
