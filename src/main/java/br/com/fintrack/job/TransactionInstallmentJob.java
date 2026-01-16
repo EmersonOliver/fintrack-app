@@ -2,6 +2,7 @@ package br.com.fintrack.job;
 
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.StatusTransaction;
+import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.invoice.service.InvoiceService;
 import br.com.fintrack.transaction.domain.TransactionEntity;
@@ -30,7 +31,10 @@ public class TransactionInstallmentJob {
     @Scheduled(cron = "0/10 * * * * ?")
     public void generateInstallments() {
         List<TransactionEntity> baseTransactions =
-                transactionRepository.findUnfinishedInstallments();
+                transactionRepository.findUnfinishedInstallments()
+                        .stream()
+                        .filter(tx -> tx.getType() != TransactionType.INVOICE_PAYMENT)
+                        .toList();
         baseTransactions.forEach(this::generateInstallments);
         log.info("Processamento de parcelas concluído");
     }

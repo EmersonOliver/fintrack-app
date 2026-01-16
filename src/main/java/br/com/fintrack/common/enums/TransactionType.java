@@ -1,5 +1,5 @@
 package br.com.fintrack.common.enums;
 
 public enum TransactionType {
-    INCOME, EXPENSE
+    INCOME, INVOICE_PAYMENT, EXPENSE
 }

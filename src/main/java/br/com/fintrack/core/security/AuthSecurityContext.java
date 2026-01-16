@@ -20,7 +20,7 @@ public class AuthSecurityContext {
 
     public class SecurityData {
 
-        public String userName;
+        public String userEmail;
         public String ipAdress;
         public String email;
         public UUID userId;

@@ -3,6 +3,7 @@ package br.com.fintrack.card.resources.response;
 import br.com.fintrack.card.domain.CardEntity;
 import br.com.fintrack.common.enums.CardType;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
+import br.com.fintrack.wallet.resources.response.WalletResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -23,6 +24,7 @@ public record CardResponse(UUID cardId,
                            Boolean active,
                            CardType cardType,
                            UUID parentCardId,
+                           WalletResponse wallet,
                            List<CardResponse> virtualCards,
                            List<InvoiceResponse> invoices
 ) {
@@ -40,6 +42,7 @@ public record CardResponse(UUID cardId,
                 entity.getActive(),
                 entity.getCardType(),
                 entity.getParentCard() != null ? entity.getParentCard().getCardId() : null,
+                entity.getWallet() != null ? WalletResponse.fromEntity(entity.getWallet()) : null,
                 entity.getVirtualCards() != null && !entity.getVirtualCards().isEmpty() ?
                         entity.getVirtualCards().stream().map(CardResponse::fromEntity).toList() : List.of(),
                 entity.getInvoices() != null && !entity.getInvoices().isEmpty() ?

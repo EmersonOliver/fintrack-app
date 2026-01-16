@@ -22,7 +22,7 @@ public record UserResponse(UUID userId,
 
         return new UserResponse(
                 entity.getUserId(),
-                entity.getName(),
+                entity.getProfile().getName(),
                 entity.getEmail(),
                 entity.getCreatedAt(),
                 entity.getWallets() != null && !entity.getWallets().isEmpty() ?

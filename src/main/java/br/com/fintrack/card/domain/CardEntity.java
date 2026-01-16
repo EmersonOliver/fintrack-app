@@ -5,6 +5,8 @@ import br.com.fintrack.common.enums.CardType;
 import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.user.domain.UserEntity;
+import br.com.fintrack.wallet.domain.WalletEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,6 +66,10 @@ public class CardEntity implements Serializable {
     @JoinColumn(name = "owner_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_card_owner_user"))
     private UserEntity owner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wallet_id", foreignKey = @ForeignKey(name = "fk_wallet_card"))
+    private WalletEntity wallet;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_card_id", referencedColumnName = "card_id")

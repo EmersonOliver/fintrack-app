@@ -59,7 +59,7 @@ public record UserProfileResponse(
                         })
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new UserProfileResponse(
-                userEntity.getName(),
+                userEntity.getProfile().getName(),
                 userEntity.getEmail(),
                 walletAmount,
                 monthlyNetBalance,

@@ -52,6 +52,12 @@ public class InvoiceEntity implements Serializable {
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
 
+    @Column(name = "paid_amount")
+    private BigDecimal paidAmount;
+
+    @Column(name = "remaining_amount")
+    private BigDecimal remainingAmount; //saldo
+
     @Column(name = "status")
     private InvoiceStatus status;
 

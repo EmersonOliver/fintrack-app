@@ -1,5 +1,6 @@
 package br.com.fintrack.wallet.resources.response;
 
+import br.com.fintrack.card.resources.response.CardResponse;
 import br.com.fintrack.common.enums.WalletType;
 import br.com.fintrack.wallet.domain.WalletEntity;
 
@@ -12,8 +13,7 @@ public record WalletResponse(
         String walletName,
         WalletType walletType,
         Boolean active,
-        BigDecimal balance
-) {
+        BigDecimal balance) {
     public static WalletResponse fromEntity(WalletEntity entity) {
         return new WalletResponse(
                 entity.getWalletId(),

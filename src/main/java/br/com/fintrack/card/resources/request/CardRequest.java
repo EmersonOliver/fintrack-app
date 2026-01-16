@@ -6,8 +6,10 @@ import br.com.fintrack.common.utils.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record CardRequest(String cardName, Integer dueDate, Integer closingDate,
+                          UUID walletId,
                           BrandCard brandCard, String lastDigits,
                           BigDecimal limitTotal, BigDecimal limitUsed, String parentCard,
                           BigDecimal limitAvailable, Boolean active, CardType cardType) {

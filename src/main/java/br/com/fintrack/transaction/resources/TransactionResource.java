@@ -1,5 +1,6 @@
 package br.com.fintrack.transaction.resources;
 
+import br.com.fintrack.common.enums.TransactionType;
 import br.com.fintrack.core.security.AuthSecurityContext;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
 import br.com.fintrack.transaction.service.ExportService;
@@ -27,6 +28,10 @@ public class TransactionResource {
     @Path("create")
     public Response create(TransactionRequest request) {
         log.info("Creating transaction payload= {}", request.toString());
+        if(request.type().equals(TransactionType.INVOICE_PAYMENT)){
+            this.transactionService.payInvoiceFully(request.invoiceId(), request);
+            return Response.ok().build();
+        }
         var entity = transactionService.create(request);
         return Response.ok(entity).build();
     }
@@ -79,8 +84,15 @@ public class TransactionResource {
                                           @QueryParam("page") @DefaultValue("0") Integer page,
                                           @QueryParam("size") @DefaultValue("10") Integer size) {
         UUID userId = securityContext.getInstance().get().userId;
-        var transactions = transactionService.loadTransactionsByCard(userId, cardId, LocalDate.now(), LocalDate.now(), page, size,referenceMonth, referenceYear);
+        var transactions = transactionService.loadTransactionsByCard(userId, cardId, LocalDate.now(), LocalDate.now(), page, size, referenceMonth, referenceYear);
         return Response.ok(transactions).build();
+    }
+
+    @POST
+    @Path("partial")
+    public Response payment(TransactionRequest request) {
+        this.transactionService.applyPartialPayment(request);
+        return Response.ok().build();
     }
 
     @GET

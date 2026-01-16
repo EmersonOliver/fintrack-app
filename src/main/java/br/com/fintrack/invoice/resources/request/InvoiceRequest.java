@@ -12,11 +12,13 @@ import java.time.LocalDateTime;
 public record InvoiceRequest(LocalDate periodStart,
                              LocalDate periodEnd,
                              BigDecimal totalAmount,
+                             BigDecimal paidAmount,
                              InvoiceStatus status) {
     public InvoiceEntity fromEntity() {
         return InvoiceEntity.builder()
                 .totalAmount(totalAmount)
                 .status(status)
+                .paidAmount(paidAmount)
                 .periodStart(periodStart)
                 .periodEnd(periodEnd)
                 .createdAt(LocalDateTime.now())

@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.math.BigDecimal;
 
 public record TransactionRequest(String description,
+                                 Long invoiceId,
                                  BigDecimal amount,
                                  String date,
                                  TransactionType type,
@@ -17,6 +18,7 @@ public record TransactionRequest(String description,
                                  Integer installmentTotal,
                                  String cardId,
                                  String walletId) {
+
 
     @Override
     public String toString() {

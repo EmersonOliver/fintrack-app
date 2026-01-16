@@ -1,6 +1,7 @@
 package br.com.fintrack.transaction.repository;
 
-import br.com.fintrack.common.enums.PaymentMethod;
+import br.com.fintrack.card.domain.CardEntity;
+import br.com.fintrack.invoice.domain.InvoiceEntity;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
@@ -30,5 +31,11 @@ public class TransactionRepository implements PanacheRepositoryBase<TransactionE
                         .and("endDate", endDate));
     }
 
+    public List<TransactionEntity> findOpenInstallmentsByCard(CardEntity card) {
+        return find("cardId=?", card.getCardId()).list();
+    }
 
+    public List<TransactionEntity> findByInvoice(InvoiceEntity invoice) {
+        return find("invoice.invoiceId=?1", invoice.getInvoiceId()).list();
+    }
 }

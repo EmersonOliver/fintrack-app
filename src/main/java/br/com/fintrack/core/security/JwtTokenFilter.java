@@ -57,7 +57,7 @@ public class JwtTokenFilter implements ContainerRequestFilter {
         securityContext.initialize();
         securityContext.getInstance().get().jsonWebToken = jsonWebToken;
         securityContext.getInstance().get().ipAdress = request.remoteAddress().toString();
-        securityContext.getInstance().get().userName = userEntity.getName();
+        securityContext.getInstance().get().userEmail = userEntity.getEmail();
         securityContext.getInstance().get().userId = userEntity.getUserId();
     }
 }

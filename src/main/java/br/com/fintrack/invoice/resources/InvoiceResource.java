@@ -2,12 +2,14 @@ package br.com.fintrack.invoice.resources;
 
 
 import br.com.fintrack.core.security.AuthSecurityContext;
+import br.com.fintrack.invoice.resources.controller.PaymentInvoiceController;
+import br.com.fintrack.invoice.resources.request.InvoicePaymentRequest;
 import br.com.fintrack.invoice.resources.request.InvoiceRequest;
 import br.com.fintrack.invoice.resources.response.InvoiceResponse;
 import br.com.fintrack.invoice.resources.response.SummaryInvoice;
 import br.com.fintrack.invoice.service.InvoiceService;
+import br.com.fintrack.transaction.resources.request.TransactionRequest;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
@@ -23,8 +25,8 @@ import java.util.UUID;
 public class InvoiceResource {
 
     private final InvoiceService service;
-
     private final AuthSecurityContext securityContext;
+    private final PaymentInvoiceController paymentInvoiceController;
 
     @POST
     @Path("create")
@@ -63,6 +65,20 @@ public class InvoiceResource {
         List<SummaryInvoice> result = this.service.getResumeInvoice(referenceDate, securityContext.getInstance().get().userId);
         return Response.ok(result).build();
 
+    }
+
+    @GET
+    @Path("{invoiceId}")
+    public Response getInvoiceById(@PathParam("invoiceId") Long invoiceId) {
+        var response = service.getInvoiceById(invoiceId);
+        return Response.ok(response).build();
+    }
+
+    @PUT
+    @Path("paid/{invoiceId}")
+    public Response paidInvoice(@PathParam("invoiceId") Long invoiceId, TransactionRequest transactionRequest) {
+        paymentInvoiceController.cardInvoicePaymentResponseMapper(invoiceId, transactionRequest);
+        return Response.ok().build();
     }
 
 

@@ -27,9 +27,6 @@ public class UserEntity implements Serializable {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(name = "name", nullable = false)
-    private String name;
-
     @Column(name = "email", nullable = false)
     private String email;
 
@@ -45,5 +42,11 @@ public class UserEntity implements Serializable {
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CardEntity> cards;
+
+    @JoinColumn(name = "id_profile", foreignKey = @ForeignKey(name = "fk_user_id_profile"))
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private ProfileEntity profile;
+
+
 
 }

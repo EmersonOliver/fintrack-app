@@ -1,10 +1,12 @@
 package br.com.fintrack.user.service.impl;
 
 import br.com.fintrack.common.exceptions.UsersException;
+import br.com.fintrack.user.domain.ProfileEntity;
 import br.com.fintrack.user.domain.UserEntity;
 import br.com.fintrack.user.repository.UserRepository;
 import br.com.fintrack.user.resources.request.UserRequest;
 import br.com.fintrack.user.service.AuthService;
+import br.com.fintrack.user.service.ProfileService;
 import br.com.fintrack.user.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +17,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     private final AuthService authService;
+    private final ProfileService profileService;
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -36,12 +40,15 @@ public class UserServiceImpl implements UserService {
             throw new UsersException("Já existe um e-mail cadastrado, gostaria de efetuar login?");
         }
         String passHashed = BcryptUtil.bcryptHash(userRequest.password());
-        var userEntity = UserEntity.builder().name(userRequest.name())
+        var userEntity = UserEntity.builder()
                 .email(userRequest.email())
                 .passwordHash(passHashed)
                 .createdAt(LocalDate.now())
                 .build();
+        var profile = createProfile(userEntity, userRequest);
         userRepository.persistAndFlush(userEntity);
+        profileService.saveProfileAndReturn(profile);
+
     }
 
     @Override
@@ -84,20 +91,20 @@ public class UserServiceImpl implements UserService {
         }
 
         EntityManager em = this.userRepository.getEntityManager();
-        page = page -1;
+        page = page - 1;
         int offset = page * size;
 
         // ───────────────────────────────────────────────
         // 2. SQL nativo usando row_to_json + paginação
         // ───────────────────────────────────────────────
         String sql = """
-        SELECT row_to_json(t)
-        FROM (
-            SELECT *
-            FROM %s.%s
-            LIMIT :size OFFSET :offset
-        ) t
-        """.formatted(schemaName, tableName);
+                SELECT row_to_json(t)
+                FROM (
+                    SELECT *
+                    FROM %s.%s
+                    LIMIT :size OFFSET :offset
+                ) t
+                """.formatted(schemaName, tableName);
 
         // ───────────────────────────────────────────────
         // 3. Execução da query e conversão para JsonNode
@@ -118,6 +125,19 @@ public class UserServiceImpl implements UserService {
                     }
                 })
                 .toList();
+    }
+
+    private ProfileEntity createProfile(UserEntity user, UserRequest userRequest) {
+        String fullName = userRequest.name().trim().replaceAll("\\s+", " ");
+        String[] parts = fullName.split(" ");
+        String name = parts[0];
+        String lastName = parts.length > 1
+                ? String.join(" ", Arrays.copyOfRange(parts, 1, parts.length))
+                : "";
+        var profile = ProfileEntity.create(user);
+        profile.setName(name);
+        profile.setLastName(lastName);
+        return profile;
     }
 
     @Override

@@ -8,6 +8,8 @@ import br.com.fintrack.card.service.CardService;
 import br.com.fintrack.common.exceptions.CardNotFoundException;
 import br.com.fintrack.common.exceptions.UsersException;
 import br.com.fintrack.user.service.UserService;
+import br.com.fintrack.wallet.domain.WalletEntity;
+import br.com.fintrack.wallet.service.WalletService;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -26,6 +28,7 @@ public class CardServiceImpl implements CardService {
 
     private final CardRepository cardRepository;
     private final UserService userService;
+    private final WalletService walletService;
 
     @Override
     @Transactional
@@ -34,7 +37,8 @@ public class CardServiceImpl implements CardService {
         if (user == null) {
             throw new UsersException("Não foi possível gerar o registro pois o usuário é inválido");
         }
-
+        WalletEntity wallet = cardRequest.walletId() != null ?
+                walletService.findEntityById(cardRequest.walletId()).orElse(null) : null;
         CardEntity parentCard = null;
         if (cardRequest.cardType().equals(VIRTUAL)) {
             if (cardRequest.parentCard() == null) {
@@ -64,6 +68,7 @@ public class CardServiceImpl implements CardService {
                 .limitUsed(cardRequest.limitUsed() != null ? cardRequest.limitUsed() : BigDecimal.ZERO)
                 .owner(user)
                 .parentCard(parentCard)
+                .wallet(wallet)
                 .build();
 
         card.updateAvailableLimit();
@@ -140,8 +145,8 @@ public class CardServiceImpl implements CardService {
         if (!cardEntity.getOwner().getUserId().equals(user.getUserId())) {
             throw new CardNotFoundException("Cartão não pertence ao seu usuário");
         }
-        if(!cardEntity.getVirtualCards().isEmpty()){
-            cardEntity.getVirtualCards().forEach(card-> {
+        if (!cardEntity.getVirtualCards().isEmpty()) {
+            cardEntity.getVirtualCards().forEach(card -> {
                 card.setActive(false);
             });
         }

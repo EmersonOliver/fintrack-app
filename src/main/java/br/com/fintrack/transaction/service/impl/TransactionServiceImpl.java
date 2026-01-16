@@ -8,6 +8,9 @@ import br.com.fintrack.common.exceptions.TransactionExceedsLimitsException;
 import br.com.fintrack.common.exceptions.TransactionNotFoundException;
 import br.com.fintrack.common.exceptions.UsersException;
 import br.com.fintrack.common.responses.dto.PageResponse;
+import br.com.fintrack.invoice.domain.InvoiceEntity;
+import br.com.fintrack.invoice.resources.request.InvoicePaymentRequest;
+import br.com.fintrack.invoice.service.InvoiceService;
 import br.com.fintrack.transaction.domain.TransactionEntity;
 import br.com.fintrack.transaction.repository.TransactionRepository;
 import br.com.fintrack.transaction.resources.request.TransactionRequest;
@@ -38,6 +41,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final UserService userService;
     private final CardService cardService;
     private final WalletService walletService;
+    private final InvoiceService invoiceService;
     private final TransactionRepository transactionRepository;
 
     @Override
@@ -47,6 +51,11 @@ public class TransactionServiceImpl implements TransactionService {
             return processIncome(request);
         }
         return processExpense(request);
+    }
+
+    @Override
+    public TransactionEntity persist(TransactionEntity transaction) {
+        return this.persist(transaction);
     }
 
     private TransactionResponse processIncome(TransactionRequest request) {
@@ -61,6 +70,13 @@ public class TransactionServiceImpl implements TransactionService {
         walletService.update(wallet.getWalletId(), new WalletRequest(wallet.getWalletName(),
                 wallet.getWalletType(),
                 wallet.getActive(), wallet.getBalance()));
+
+        CardEntity debitCard = cardService.loadCardById(request.cardId()).orElse(null);
+        if (!Objects.isNull(debitCard)) {
+            debitCard.setLimitAvailable(wallet.getBalance());
+            debitCard.setLimitTotal(wallet.getBalance());
+            cardService.updateLimit(debitCard);
+        }
 
         TransactionEntity transaction = TransactionEntity.builder()
                 .description(request.description())
@@ -152,12 +168,6 @@ public class TransactionServiceImpl implements TransactionService {
 
         var invoiceCard = card.getInvoices().stream().filter(status -> status.getStatus()
                 .equals(InvoiceStatus.OPEN)).findFirst().orElse(null);
-
-//        if (invoiceCard != null) {
-//            BigDecimal invoiceAmount = invoiceCard.getTotalAmount();
-//            invoiceAmount = invoiceAmount.add(installmentValue);
-//            invoiceCard.setTotalAmount(invoiceAmount);
-//        }
 
         TransactionEntity transaction = TransactionEntity.builder()
                 .description(request.description())
@@ -356,8 +366,89 @@ public class TransactionServiceImpl implements TransactionService {
         if (!wallet.getOwner().getUserId().equals(userId)) {
             throw new UsersException("A carteira pertence a outro usuário");
         }
-
         return wallet;
+    }
+
+    @Transactional
+    @Override
+    public void payInvoiceFully(Long invoiceId, TransactionRequest request) {
+        InvoiceEntity invoice = invoiceService.getInvoiceEntityById(invoiceId);
+        List<TransactionEntity> installments =
+                transactionRepository.findByInvoice(invoice);
+
+        for (TransactionEntity installment : installments) {
+
+            BigDecimal paid = installment.getPaidAmount() == null
+                    ? BigDecimal.ZERO
+                    : installment.getPaidAmount();
+
+            BigDecimal remaining =
+                    installment.getInstallmentValue().subtract(paid);
+
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                continue; // já quitada
+            }
+
+            installment.setPaidAmount(
+                    installment.getInstallmentValue()
+            );
+            installment.setStatus(StatusTransaction.PAID);
+
+            transactionRepository.persist(installment);
+        }
+
+        invoiceService.recalculateInvoice(invoice);
+    }
+
+    @Transactional
+    @Override
+    public void applyPartialPayment(TransactionRequest request) {
+        CardEntity card = this.cardService.loadCardById(request.cardId()).orElseThrow(() -> new CardNotFoundException("Cartao nao encontrado"));
+        BigDecimal paymentAmount = request.amount();
+
+        List<TransactionEntity> openInstallments =
+                transactionRepository.findOpenInstallmentsByCard(card);
+
+        BigDecimal remainingPayment = paymentAmount;
+
+        for (TransactionEntity installment : openInstallments) {
+
+            if (remainingPayment.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+
+            BigDecimal installmentRemaining =
+                    installment.getInstallmentValue()
+                            .subtract(
+                                    installment.getPaidAmount() == null
+                                            ? BigDecimal.ZERO
+                                            : installment.getPaidAmount()
+                            );
+
+            if (remainingPayment.compareTo(installmentRemaining) >= 0) {
+                // quita a parcela
+                installment.setPaidAmount(installment.getInstallmentValue());
+                installment.setStatus(StatusTransaction.PAID);
+                remainingPayment = remainingPayment.subtract(installmentRemaining);
+            } else {
+                // pagamento parcial da parcela
+                installment.setPaidAmount(
+                        installment.getPaidAmount() == null
+                                ? remainingPayment
+                                : installment.getPaidAmount().add(remainingPayment)
+                );
+                installment.setStatus(StatusTransaction.PARTIALLY_PAID);
+                remainingPayment = BigDecimal.ZERO;
+            }
+
+            transactionRepository.persist(installment);
+            invoiceService.recalculateInvoice(installment.getInvoice());
+        }
+    }
+
+    @Override
+    public List<TransactionEntity> findByInvoiceOrdered(InvoiceEntity invoice) {
+        return List.of();
     }
 
 

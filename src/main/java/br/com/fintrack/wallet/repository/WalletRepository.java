@@ -13,7 +13,6 @@ import java.util.UUID;
 public class WalletRepository implements PanacheRepositoryBase<WalletEntity, UUID> {
 
     public PanacheQuery<WalletEntity> findByOwnerId(UUID ownerId) {
-        return find("where ownerId =:ownerId", Parameters.with("ownerId", ownerId));
-
+        return find("where ownerId =:ownerId order by balance desc", Parameters.with("ownerId", ownerId));
     }
 }

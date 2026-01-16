@@ -37,6 +37,9 @@ public class TransactionEntity implements Serializable {
     @Column(name = "amount")
     private BigDecimal amount;
 
+    @Column(name = "paid_amount")
+    private BigDecimal paidAmount;
+
     @Column(name = "installment_value")
     private BigDecimal installmentValue;
 

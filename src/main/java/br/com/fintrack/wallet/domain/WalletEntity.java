@@ -51,4 +51,5 @@ public class WalletEntity implements Serializable {
     @OneToMany(mappedBy = "wallet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TransactionEntity> transactions;
 
+
 }
